@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Web GIS – Sorun Bildir</title>
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      height: 75vh;
+    }
+    .panel {
+      padding: 10px;
+      background: #f4f4f4;
+    }
+    input, button {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+    }
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="panel">
+  <input id="title" placeholder="Sorun başlığı" />
+  <input id="description" placeholder="Açıklama" />
+  <input type="file" id="photoInput" accept="image/*" capture="environment" />
+
+  <button onclick="getLocation()">📍 Konumumu Al</button>
+  <button onclick="sendIssue()">🚀 Sorunu Gönder</button>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  /* =========================
+     API URL
+     ========================= */
+  // LOCAL:
+  // const API_URL = "http://localhost:5002/api/issues";
+
+  // 🔴 NGROK KULLANIRKEN BURAYI DEĞİŞTİR
+  const API_URL = "https://XXXXXX.ngrok-free.dev/api/issues";
+
+  let userLat = null;
+  let userLng = null;
+
+  /* =========================
+     HARİTA
+     ========================= */
+  const map = L.map("map").setView([39.9334, 32.8597], 12);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
+
+  /* =========================
+     MEVCUT ISSUE'LARI YÜKLE
+     ========================= */
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      data.forEach(issue => {
+        const [lng, lat] = issue.location.coordinates;
+
+        let popup = `<b>${issue.title}</b><br>${issue.description || ""}`;
+
+        if (issue.photo) {
+          popup += `
+            <br><br>
+            <img src="https://XXXXXX.ngrok-free.dev/uploads/${issue.photo}"
+                 width="150" />
+          `;
+        }
+
+        L.marker([lat, lng])
+          .addTo(map)
+          .bindPopup(popup);
+      });
+    })
+    .catch(err => {
+      console.error("API Hatası:", err);
+    });
+
+  /* =========================
+     KONUM AL
+     ========================= */
+  function getLocation() {
+    if (!navigator.geolocation) {
+      alert("Tarayıcı konum desteklemiyor");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+
+        map.setView([userLat, userLng], 16);
+
+        L.marker([userLat, userLng])
+          .addTo(map)
+          .bindPopup("📍 Konumunuz")
+          .openPopup();
+      },
+      () => alert("❌ Konum alınamadı")
+    );
+  }
+
+  /* =========================
+     ISSUE GÖNDER
+     ========================= */
+  function sendIssue() {
+    if (!userLat || !userLng) {
+      alert("Önce konum alın");
+      return;
+    }
+
+    const title = document.getElementById("title").value;
+    if (!title) {
+      alert("Başlık zorunlu");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("description", document.getElementById("description").value);
+    formData.append("lat", userLat);
+    formData.append("lng", userLng);
+
+    const photo = document.getElementById("photoInput").files[0];
+    if (photo) {
+      formData.append("photo", photo);
+    }
+
+    fetch(API_URL, {
+      method: "POST",
+      body: formData
+    })
+    .then(res => res.json())
+    .then(() => {
+      alert("✅ Sorun başarıyla kaydedildi");
+      location.reload();
+    })
+    .catch(err => {
+      console.error(err);
+      alert("❌ Gönderme hatası");
+    });
+  }
+</script>
+
+</body>
+</html>
