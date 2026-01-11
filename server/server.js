@@ -1,47 +1,46 @@
+/* Dosya: server/server.js */
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const connectDB = require("./config/db");
+const pool = require("./db/postgres");
+
+// Rotaları İçe Aktar
+const issuesRouter = require("./routes/issues");
+const authRouter = require("./routes/auth"); // <--- YENİ EKLENEN SATIR
 
 const app = express();
 
-/* =========================
-   MongoDB
-========================= */
-connectDB();
-
-/* =========================
-   Middlewares
-========================= */
+// Middleware (Ara Yazılımlar)
 app.use(cors());
 app.use(express.json());
 
-/* uploads klasörü */
+// --- YOL AYARLARI ---
+const clientPath = path.join(__dirname, "../client");
+
+// Statik dosyaları sun
+app.use(express.static(clientPath));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/* =========================
-   API Routes
-========================= */
-const issueRoutes = require("./routes/issues");
-app.use("/api/issues", issueRoutes);
+// --- API ROTALARI ---
+app.use("/api/issues", issuesRouter);
+app.use("/api/auth", authRouter); // <--- YENİ EKLENEN SATIR (Giriş Sistemi Burayı Kullanacak)
 
-/* =========================
-   CLIENT (HARİTA)
-========================= */
-// client klasörünü statik yap
-app.use(express.static(path.join(__dirname, "../client")));
-
-// ROOT → index.html (HARİTA)
+// Ana Sayfa Yönlendirmesi
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/index.html"));
+  res.sendFile(path.join(clientPath, "index.html"));
 });
 
-/* =========================
-   Server
-========================= */
-const PORT = process.env.PORT || 5002;
+// Veritabanı Testi
+pool.query("SELECT NOW()")
+  .then(() => console.log("✅ Veritabanı Bağlı"))
+  .catch(err => {
+    console.error("❌ Veritabanı Hatası:", err.message);
+    process.exit(1);
+  });
 
+// Sunucuyu Başlat
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
-  console.log(`🚀 Server ${PORT} portunda çalışıyor`);
+  console.log(`🚀 Sunucu Çalışıyor: http://localhost:${PORT}`);
 });
