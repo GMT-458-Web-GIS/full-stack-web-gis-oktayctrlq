@@ -1,225 +1,143 @@
-GMT 458 – Full Stack Web GIS Project
+# GMT 458 – Full Stack Web GIS Project
 
-This repository contains the ongoing development of the GMT 458 – Web GIS course project.
-The project aims to build a Full Stack Web GIS application using modern web technologies and a NoSQL database.
+This repository contains the final development of the **GMT 458 – Web GIS** course project.
+The project is a **Full Stack Web GIS application** built using modern web technologies, a **Spatial Database (PostgreSQL/PostGIS)**, and hosted on **AWS Cloud**.
 
-👤 Student Information
+## 👤 Student Information
 
-Name: Oktay Duman
+* **Name:** Oktay Duman
+* **Student ID:** 2200674014
+* **Course:** GMT 458 – Web GIS
 
-Student ID: 2200674014
+---
 
-Course: GMT 458 – Web GIS
+## 🚀 Project Overview
 
-🚀 Project Overview
+This project is a complete "Urban Issue Reporting System" that allows citizens to report location-based issues (potholes, trash, lighting) and enables administrators to manage them.
 
-This project is designed as a Full Stack Web GIS system that allows users to report location-based issues through an interactive map interface.
+**Key Architectural Decisions:**
+* **API Development Strategy:** Instead of using pre-built servers like GeoServer, a custom **RESTful API** was developed using Node.js to handle spatial queries efficiently.
+* **Cloud Deployment:** The project is hosted live on an **Amazon Web Services (AWS) EC2** instance for real-world accessibility.
+* **Spatial Performance:** Utilizes **PostGIS** with **R-Tree Spatial Indexing** for fast geographic queries.
 
-The system follows a client–server architecture, where:
+---
 
-The frontend provides a map-based user interface for interaction.
+## 🗺️ Core Features & Requirements Met
 
-The backend exposes RESTful API services.
+### 1. Advanced Web GIS Capabilities
+* ✅ **Interactive Map:** Built with Leaflet.js & OpenStreetMap.
+* ✅ **Real-time Geolocation:** User position detection via HTML5 API.
+* ✅ **Spatial Database:** Data stored in **PostgreSQL** with **PostGIS** extension (Geometry/Point types).
+* ✅ **Spatial Indexing:** GIST (Generalized Search Tree) indexing implemented for performance.
 
-The database stores spatial and non-spatial data using MongoDB (GeoJSON format).
+### 2. User & System Management
+* ✅ **Authentication System:** Secure Login & Registration using **JWT (JSON Web Tokens)**.
+* ✅ **Role-Based Access Control (RBAC):**
+    * **Citizen:** Can view and report issues.
+    * **Staff/Admin:** Can manage and delete issues.
+    * **Guest:** Read-only access.
 
-At the current stage:
+### 3. CRUD Operations
+* ✅ **Create:** Report new issues with location, description, and photos.
+* ✅ **Read:** View all issues on the map with popup details.
+* ✅ **Update/Delete:** Authorized users can manage records.
 
-Backend and frontend are integrated.
+### 4. Cloud & Deployment
+* ✅ **AWS Hosting:** Deployed on an Ubuntu Server via AWS EC2.
+* ✅ **Process Management:** Application runs continuously using **PM2**.
 
-Users can access the system from desktop and mobile browsers.
+---
 
-Location, description, and photo-based issue reporting is implemented.
+## 🛠 Tech Stack
 
-🗺️ Core Features
+### Frontend
+* HTML5, CSS3, JavaScript (ES6+)
+* **Mapping Library:** Leaflet.js
+* **Basemaps:** OpenStreetMap (OSM)
 
-Interactive map using Leaflet.js & OpenStreetMap
+### Backend (API)
+* **Runtime:** Node.js
+* **Framework:** Express.js
+* **Security:** BCrypt (Password Hashing), JWT (Tokens), CORS
 
-Real-time user location detection
+### Database
+* **DBMS:** PostgreSQL
+* **Spatial Extension:** PostGIS
+* **Library:** `pg` (node-postgres)
 
-Issue reporting with:
+### DevOps & Tools
+* **Cloud:** Amazon Web Services (AWS EC2)
+* **OS:** Ubuntu Linux
+* **Version Control:** Git & GitHub
+* **Process Manager:** PM2
 
-Title
+---
 
-Description
+## 📁 Project Structure
 
-Geographic coordinates
-
-Optional photo upload
-
-Storage of spatial data in MongoDB (GeoJSON)
-
-Display of existing issues on the map
-
-Mobile access via Ngrok
-
-🛠 Tech Stack
-Frontend
-
-HTML5
-
-JavaScript
-
-Leaflet.js
-
-OpenStreetMap
-
-HTML5 Geolocation API
-
-Backend
-
-Node.js
-
-Express.js
-
-MongoDB (Community Edition)
-
-Mongoose
-
-Multer (file uploads)
-
-dotenv
-
-cors
-
-Tools
-
-Visual Studio Code
-
-MongoDB Shell (mongosh)
-
-Git & GitHub
-
-Ngrok
-
-📁 Project Structure
+```bash
 web-gis-proje/
 │
 ├── client/
-│   └── index.html          # Frontend (Map + Form)
+│   ├── index.html          # Main User Interface (Map + Forms)
+│   ├── admin.html          # Admin Dashboard (Optional)
+│   └── assets/             # CSS and Icons
 │
 ├── server/
-│   ├── config/
-│   │   └── db.js           # MongoDB connection
-│   ├── models/
-│   │   └── Issue.js        # MongoDB schema (GeoJSON)
-│   ├── routes/
-│   │   └── issues.js       # REST API routes
-│   ├── uploads/            # Uploaded images
-│   ├── .env                # Environment variables
-│   ├── package.json
-│   └── server.js           # Express server entry point
+│   ├── db.js               # PostgreSQL Connection Pool
+│   ├── setup.js            # Database & Table Initialization Script
+│   ├── server.js           # Main Express App & API Routes
+│   ├── uploads/            # Storage for issue photos
+│   ├── .env                # Environment Variables (DB Creds, Secrets)
+│   └── package.json        # Dependencies
 │
 └── README.md
+⚙️ Database Schema (PostgreSQL)
+The system uses a relational schema with spatial capabilities:
 
-⚙️ Environment Configuration
+SQL
 
-The backend uses environment variables stored in a .env file:
+CREATE TABLE issues (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(100),
+    description TEXT,
+    contact VARCHAR(100),
+    image_url TEXT,
+    location GEOMETRY(Point, 4326),  -- Spatial Column
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-PORT=5002
-MONGO_URI=mongodb://127.0.0.1:27017/public_issue_gis
-
-🔌 Backend Setup & Status
-✔ Express Server
-
-Express server runs successfully on PORT 5002
-
-Root endpoint test:
-
-GET /
-
-
-Response:
-
-Web GIS Backend Çalışıyor 🚀
-
-✔ MongoDB Connection
-
-MongoDB Community Edition installed
-
-MongoDB service running locally
-
-Connection established using Mongoose
-
-Successful connection confirmed via terminal logs
-
+-- Spatial Index for Performance
+CREATE INDEX idx_issues_location ON issues USING GIST (location);
 🔗 API Endpoints
-Get all issues
-GET /api/issues
+Authentication
+POST /api/auth/register - Register a new user
 
-Create a new issue
-POST /api/issues
+POST /api/auth/login - Login and receive JWT
 
+Issue Management
+GET /api/issues - Retrieve all spatial data (GeoJSON format)
 
-Form-Data Parameters:
+POST /api/issues - Report a new issue (Supports Multipart/Form-Data)
 
-title (string, required)
+DELETE /api/issues/:id - Delete an issue (Admin only)
 
-description (string)
+🧪 Deployment & Live Testing
+The project is currently deployed on AWS.
 
-lat (number)
+Server: AWS EC2 (t2.micro / Ubuntu)
 
-lng (number)
+Port: 5002 (Custom TCP Rule enabled in Security Groups)
 
-photo (file, optional)
+Live Access: The application is accessible via the public IP provided in the submission details.
 
-🌍 Spatial Data Format
+📌 Progress Summary
+❌ Old Plan: MongoDB (Removed for better spatial support)
 
-Issues are stored using GeoJSON Point geometry:
+✅ Current Status: PostgreSQL + PostGIS (Completed)
 
-{
-  "type": "Point",
-  "coordinates": [longitude, latitude]
-}
+✅ Status: AWS Deployment (Completed)
 
-📱 Mobile Access (Ngrok)
+✅ Status: Authentication & Security (Completed)
 
-The backend can be exposed to mobile devices using Ngrok:
-
-ngrok http 5002
-
-
-This enables:
-
-Mobile location access
-
-Camera usage for photo uploads
-
-Real-time testing on physical devices
-
-🧪 Testing & Verification
-
-MongoDB tested via mongosh
-
-API endpoints tested via browser and REST clients
-
-Map rendering tested on desktop and mobile browsers
-
-Location and photo selection verified
-
-📌 Current Progress Summary
-
-✅ GitHub repository initialized
-✅ Backend structure completed
-✅ Express server running
-✅ MongoDB connected
-✅ REST API implemented
-✅ Frontend integrated with backend
-✅ Leaflet map operational
-✅ Mobile access via Ngrok
-
-🔜 Planned Next Steps
-
-Fix POST request error handling (upload/debug)
-
-Improve frontend UI/UX
-
-Add issue categories and filtering
-
-Implement authentication & user roles
-
-Add admin/management panel
-
-Deployment to a public server
-
-Final report & presentation preparation
+Developed by Oktay Duman for GMT 458.
