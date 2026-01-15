@@ -24,22 +24,18 @@
 
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); transition: 0.3s; }
         
-        /* Loading Animasyonu */
         #loader { position: fixed; inset: 0; background: var(--primary); z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Karşılama Ekranı */
         #landing-page { position: fixed; inset: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
         .card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); padding: 30px; border-radius: 20px; width: 220px; border: 1px solid rgba(255,255,255,0.2); text-align: center; }
 
-        /* Giriş Paneli */
         #auth-container { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999; }
         .auth-box { background: white; padding: 40px; border-radius: 24px; width: 350px; text-align: center; color: #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .auth-box input, .auth-box select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
         .auth-box button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
 
-        /* Harita ve Paneller */
         #map-container { display: none; height: 100%; width: 100%; position: relative; }
         #map { height: 100%; width: 100%; }
 
@@ -117,6 +113,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script>
+        // CANLI SUNUCU IP ADRESİ VE PORTU
+        const API_BASE_URL = "http://13.48.248.53:5002"; 
+
         let map, markersLayer, currentLat, currentLng, allIssues = [], isDarkMode = false, isRegisterMode = false;
 
         window.onload = () => { 
@@ -138,7 +137,7 @@
 
         async function handleLogin() {
             try {
-                const res = await fetch("/api/auth/login", { 
+                const res = await fetch(`${API_BASE_URL}/api/auth/login`, { 
                     method: "POST", headers: { "Content-Type": "application/json" }, 
                     body: JSON.stringify({ username: document.getElementById("username").value, password: document.getElementById("password").value })
                 });
@@ -149,12 +148,12 @@
                     localStorage.setItem("username", data.username);
                     showMap();
                 } else { alert("❌ " + data.error); }
-            } catch (err) { alert("Sunucu hatası!"); }
+            } catch (err) { alert("Sunucu hatası! IP adresinizi kontrol edin."); }
         }
 
         async function handleRegister() {
             try {
-                const res = await fetch("/api/auth/register", { 
+                const res = await fetch(`${API_BASE_URL}/api/auth/register`, { 
                     method: "POST", headers: { "Content-Type": "application/json" }, 
                     body: JSON.stringify({ username: document.getElementById("username").value, password: document.getElementById("password").value, role: document.getElementById("role-select").value })
                 });
@@ -183,10 +182,12 @@
         }
 
         async function loadIssues() {
-            const res = await fetch("/api/issues");
-            allIssues = await res.json();
-            renderMarkers();
-            document.getElementById("progress-bar").style.width = Math.min(allIssues.length * 10, 100) + "%";
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/issues`);
+                allIssues = await res.json();
+                renderMarkers();
+                document.getElementById("progress-bar").style.width = Math.min(allIssues.length * 10, 100) + "%";
+            } catch (err) { console.error("Veriler çekilemedi:", err); }
         }
 
         function renderMarkers() {
@@ -194,14 +195,14 @@
             const role = localStorage.getItem("role");
             const user = localStorage.getItem("username");
             allIssues.forEach(issue => {
-                // Sadece kendi kayıtlarını görme kısıtlaması (Vatandaş için)
                 if (role === "Vatandaş" && issue.created_by !== user) return;
                 
                 if (issue.lat && issue.lng) {
                     const color = issue.title.toLowerCase().includes("acil") ? "red" : "#2a5298";
                     const marker = L.circleMarker([issue.lat, issue.lng], { radius: 10, fillColor: color, color: "white", weight: 2, fillOpacity: 0.8 });
                     let content = `<b>${issue.title}</b><p>${issue.description}</p>`;
-                    if (issue.photo) content += `<img src="${issue.photo}" width="150" style="border-radius:10px; margin-top:5px;">`;
+                    // Fotoğraf yolu sunucu IP'si ile güncellendi
+                    if (issue.photo) content += `<img src="${API_BASE_URL}${issue.photo}" width="150" style="border-radius:10px; margin-top:5px;">`;
                     marker.addTo(markersLayer).bindPopup(content);
                 }
             });
@@ -219,13 +220,11 @@
                 currentLat = pos.coords.latitude; currentLng = pos.coords.longitude;
                 map.flyTo([currentLat, currentLng], 17);
                 L.marker([currentLat, currentLng]).addTo(map).bindPopup("📍 Buradasınız").openPopup();
-            }, err => alert("Konum alınamadı. Lütfen tarayıcı izinlerini kontrol edin."));
+            }, err => alert("Konum alınamadı."));
         }
 
-        // Güncellenmiş SaveIssue Fonksiyonu
         async function saveIssue() {
             if (!currentLat || !currentLng) return alert("Lütfen önce konumunuzu belirleyin! (📍)");
-            
             const title = document.getElementById("title").value;
             if (!title) return alert("Lütfen bir başlık girin!");
 
@@ -234,12 +233,11 @@
             formData.append("description", document.getElementById("desc").value);
             formData.append("latitude", currentLat); 
             formData.append("longitude", currentLng);
-            
             const photoFile = document.getElementById("photo").files[0];
             if (photoFile) formData.append("photo", photoFile);
 
             try {
-                const res = await fetch("/api/issues", { 
+                const res = await fetch(`${API_BASE_URL}/api/issues`, { 
                     method: "POST", 
                     headers: { "x-auth-token": localStorage.getItem("token") }, 
                     body: formData 
@@ -247,18 +245,15 @@
 
                 if (res.ok) { 
                     alert("✅ Başarıyla kaydedildi!"); 
-                    // Temizlik
                     document.getElementById("title").value = "";
                     document.getElementById("desc").value = "";
                     document.getElementById("photo").value = "";
                     loadIssues(); 
                 } else {
                     const data = await res.json();
-                    alert("❌ Hata: " + (data.error || "Sunucu hatası"));
+                    alert("❌ Hata: " + data.error);
                 }
-            } catch (err) {
-                alert("❌ Sunucuya bağlanılamadı! Terminale bak.");
-            }
+            } catch (err) { alert("❌ Sunucuya bağlanılamadı!"); }
         }
 
         function logout() { localStorage.clear(); location.reload(); }

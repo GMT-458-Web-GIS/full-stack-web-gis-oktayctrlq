@@ -4,7 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const pool = require("./db/postgres");
 
-// 1. Swagger Paketlerini İçe Aktar
+// Swagger Paketleri
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
@@ -12,9 +12,9 @@ const swaggerUi = require('swagger-ui-express');
 const issuesRouter = require("./routes/issues");
 const authRouter = require("./routes/auth");
 
-const app = express(); // <--- Önce uygulama başlatılmalı!
+const app = express();
 
-// 2. Swagger Ayarlarını Yapılandır
+// --- SWAGGER AYARLARI ---
 const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',
@@ -23,47 +23,53 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Akıllı Kent Yönetim Sistemi API Dokümantasyonu',
     },
-    servers: [{ url: 'http://localhost:5002' }],
+    servers: [
+        { url: 'http://13.48.248.53:5002', description: 'Canlı AWS Sunucusu' },
+        { url: 'http://localhost:5002', description: 'Yerel Geliştirme' }
+    ],
   },
-  apis: ['./routes/*.js'], // Routes klasöründeki JSDoc yorumlarını oku
+  apis: ['./routes/*.js'], 
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
-// Middleware (Ara Yazılımlar)
+// --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
 
-// 3. Swagger Rotasını Tanımla
+// Swagger Rotası
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// --- YOL AYARLARI ---
+// --- DOSYA YOLLARI VE STATİK SUNUM ---
 const clientPath = path.join(__dirname, "../client");
 
-// Statik dosyaları sun
+// Harita sayfasını (index.html) sunar
 app.use(express.static(clientPath));
+
+// Yüklenen fotoğrafları dışarıya açar
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // --- API ROTALARI ---
 app.use("/api/issues", issuesRouter);
 app.use("/api/auth", authRouter);
 
-// Ana Sayfa Yönlendirmesi
+// Ana Sayfa Yönlendirmesi (IP adresini yazınca index.html açılır)
 app.get("/", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });
 
-// Veritabanı Testi
+// --- VERİTABANI BAĞLANTI TESTİ ---
+// PostGIS destekli belediye_db veritabanına bağlanır
 pool.query("SELECT NOW()")
-  .then(() => console.log("✅ Veritabanı Bağlı"))
+  .then(() => console.log("✅ AWS PostgreSQL/PostGIS Bağlantısı Başarılı"))
   .catch(err => {
     console.error("❌ Veritabanı Hatası:", err.message);
     process.exit(1);
   });
 
-// Sunucuyu Başlat
+// --- SUNUCUYU BAŞLAT ---
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
-  console.log(`🚀 Sunucu Çalışıyor: http://localhost:${PORT}`);
-  console.log(`📖 API Dokümantasyonu: http://localhost:${PORT}/api-docs`);
+  console.log(`🚀 Sunucu Yayında: http://13.48.248.53:${PORT}`);
+  console.log(`📖 API Dokümantasyonu: http://13.48.248.53:${PORT}/api-docs`);
 });

@@ -1,11 +1,12 @@
 const { Pool } = require("pg");
+require('dotenv').config(); // .env dosyasını okumak için en üste ekle
 
 const pool = new Pool({
-  host: "localhost",
-  user: "postgres",
-  password: "123456", 
-  database: "belediye_db", // ÖNEMLİ: Mutlaka belediye_db olmalı
-  port: 5432,
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "postgres",
+  password: process.env.DB_PASSWORD || "123456", // Şifre yoksa MacBook şifren yedek kalır
+  database: process.env.DB_NAME || "belediye_db",
+  port: process.env.DB_PORT || 5432,
 });
 
 module.exports = {
