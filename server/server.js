@@ -14,16 +14,10 @@ const app = express();
 const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',
-    info: {
-      title: 'Belediye CBS API',
-      version: '1.0.0',
-      description: 'Akıllı Kent Yönetim Sistemi API Dokümantasyonu',
-    },
-    servers: [
-        { url: 'http://13.48.248.53:5002', description: 'Canlı AWS Sunucusu' }
-    ],
+    info: { title: 'Belediye CBS API', version: '1.0.0' },
+    servers: [{ url: 'http://13.48.248.53:5002' }]
   },
-  // Klasör yapın server/routes/ olduğu için bu yol kritiktir
+  // Dosya yolu deployment yapına uygun olarak güncellendi
   apis: ['./server/routes/*.js', './server/server.js'], 
 };
 
@@ -39,15 +33,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/issues", issuesRouter);
 app.use("/api/auth", authRouter);
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(clientPath, "index.html"));
-});
-
-pool.query("SELECT NOW()")
-  .then(() => console.log("✅ AWS PostgreSQL/PostGIS Bağlantısı Başarılı"))
-  .catch(err => console.error("❌ Veritabanı Hatası:", err.message));
+app.get("/", (req, res) => { res.sendFile(path.join(clientPath, "index.html")); });
 
 const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => {
-  console.log(`🚀 Sunucu Yayında: http://13.48.248.53:${PORT}`);
-});
+app.listen(PORT, () => { console.log(`🚀 Sunucu Yayında: ${PORT}`); });
