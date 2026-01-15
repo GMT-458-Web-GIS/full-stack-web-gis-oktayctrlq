@@ -18,7 +18,29 @@ async function checkIndex() {
       console.log("------------------------------------------------");
     });
 
-  } catch (err) {
+  } catch (err) {-- Mevcut tabloları temizleyip en hatasız haliyle kuralım
+DROP TABLE IF EXISTS issues;
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY, 
+    username TEXT UNIQUE NOT NULL, 
+    password TEXT NOT NULL, 
+    role TEXT DEFAULT 'Vatandaş'
+);
+
+CREATE TABLE issues (
+    id SERIAL PRIMARY KEY, 
+    title TEXT NOT NULL, 
+    description TEXT, 
+    photo TEXT, 
+    lat REAL, 
+    lng REAL, 
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Senin giriş yapabilmen için örnek kullanıcı -- 
+INSERT INTO users (username, password, role) VALUES ('123456', '123456', 'Vatandaş');
     console.error("Hata:", err.message);
   } finally {
     pool.end();

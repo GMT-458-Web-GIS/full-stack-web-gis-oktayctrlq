@@ -1,0 +1,9 @@
+config:
+  target: "http://localhost:5002"
+  phases:
+    - duration: 60  # 60 saniye boyunca test et
+      arrivalRate: 5 # Saniyede 5 yeni kullanıcı gönder
+scenarios:
+  - flow:
+      - get:
+          url: "/api/issues"

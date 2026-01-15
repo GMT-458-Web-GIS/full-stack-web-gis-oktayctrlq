@@ -1,4 +1,4 @@
-/* Dosya: server/routes/issues.js (BELEDİYE + UPDATE ÖZELLİĞİ) */
+/* Dosya: server/routes/issues.js - TEMİZ VE HATASIZ SÜRÜM */
 const express = require("express");
 const router = express.Router();
 const pool = require("../db/postgres");
@@ -6,48 +6,58 @@ const auth = require("../middleware/auth");
 const multer = require("multer");
 const path = require("path");
 
+// Dosya yükleme ayarları (Fotoğraflar için)
 const storage = multer.diskStorage({
   destination: "./uploads/",
-  filename: function (req, file, cb) { cb(null, Date.now() + path.extname(file.originalname)); },
+  filename: function (req, file, cb) { 
+    cb(null, Date.now() + path.extname(file.originalname)); 
+  },
 });
 const upload = multer({ storage: storage });
 
-/* 1. VERİLERİ GETİR */
+/* 1. TÜM VERİLERİ LİSTELE */
 router.get("/", async (req, res) => {
   try {
-    const query = `SELECT id, title, description, photo, created_by, created_at, ST_AsGeoJSON(geom)::json as geom FROM issues ORDER BY created_at DESC`;
+    const query = `SELECT * FROM issues ORDER BY created_at DESC`;
     const allIssues = await pool.query(query);
     res.json(allIssues.rows);
-  } catch (err) { res.status(500).send("Sunucu Hatası"); }
+  } catch (err) { 
+    console.error("Veri çekme hatası:", err.message);
+    res.status(500).send("Sunucu Hatası"); 
+  }
 });
 
-/* 2. VERİ EKLE (Herkes Ekleyebilir) */
+/* 2. YENİ SORUN EKLE */
 router.post("/", auth, upload.single("photo"), async (req, res) => {
   try {
     const { title, description, latitude, longitude } = req.body;
     const photo = req.file ? `/uploads/${req.file.filename}` : null;
     
-    // Kullanıcı adını al
+    // Kullanıcı adını ID üzerinden çekiyoruz
     const userRes = await pool.query("SELECT username FROM users WHERE id = $1", [req.user.id]);
     const username = userRes.rows[0]?.username || "Anonim";
 
     const newIssue = await pool.query(
-      `INSERT INTO issues (title, description, geom, photo, created_by) VALUES ($1, $2, ST_SetSRID(ST_MakePoint($4, $3), 4326), $5, $6) 
-       RETURNING id, title, description, photo, created_by, ST_AsGeoJSON(geom)::json as geom`,
-      [title, description, latitude, longitude, photo, username]
+      `INSERT INTO issues (title, description, photo, lat, lng, created_by) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING *`,
+      [title, description, photo, latitude, longitude, username]
     );
     res.json(newIssue.rows[0]);
-  } catch (err) { res.status(500).send("Sunucu Hatası"); }
+  } catch (err) { 
+    console.error("Ekleme hatası:", err.message);
+    res.status(500).send("Sunucu Hatası: " + err.message); 
+  }
 });
 
-/* 3. VERİ GÜNCELLE (SADECE PERSONEL VE YÖNETİCİ) - [YENİ ÖZELLİK!] */
+/* 3. VERİ GÜNCELLE (Belediye ve Admin Yetkili) */
 router.put("/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { description } = req.body; // Sadece açıklamayı güncelleyelim
+    const { description } = req.body;
 
-    // KURAL: Vatandaş güncelleyemez! Sadece Personel ve Admin.
-    if (req.user.role === "citizen") {
+    // Rol Kontrolü
+    if (req.user.role === "Vatandaş") {
         return res.status(403).json({ error: "Vatandaşlar güncelleme yapamaz!" });
     }
 
@@ -58,21 +68,24 @@ router.put("/:id", auth, async (req, res) => {
 
     res.json({ message: "Güncellendi", issue: update.rows[0] });
   } catch (err) {
-    console.error(err.message);
+    console.error("Güncelleme hatası:", err.message);
     res.status(500).send("Sunucu Hatası");
   }
 });
 
-/* 4. VERİ SİL (SADECE YÖNETİCİ) */
+/* 4. VERİ SİL (Belediye ve Admin Yetkili) */
 router.delete("/:id", auth, async (req, res) => {
   try {
-    // KURAL: Sadece 'admin' silebilir!
-    if (req.user.role !== "admin") {
-       return res.status(403).json({ error: "Silmek için YÖNETİCİ olmalısınız!" });
+    // Rol Kontrolü
+    if (req.user.role === "Vatandaş") {
+       return res.status(403).json({ error: "Silmek için yetkili olmalısınız!" });
     }
     await pool.query("DELETE FROM issues WHERE id = $1", [req.params.id]);
     res.json({ message: "Silindi" });
-  } catch (err) { res.status(500).send("Sunucu Hatası"); }
+  } catch (err) { 
+    console.error("Silme hatası:", err.message);
+    res.status(500).send("Sunucu Hatası"); 
+  }
 });
 
 module.exports = router;
