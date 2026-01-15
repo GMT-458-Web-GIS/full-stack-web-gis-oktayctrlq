@@ -27,7 +27,7 @@ const upload = multer({ storage: storage });
  */
 router.get("/", async (req, res) => {
   try {
-    // PostGIS fonksiyonu (ST_X ve ST_Y) ile koordinatları çekiyoruz
+    // PostGIS fonksiyonları ile koordinatları 'lat' ve 'lng' olarak çekiyoruz
     const query = `
       SELECT id, title, description, photo, created_by, created_at,
       ST_X(geom) as lng, ST_Y(geom) as lat 
@@ -57,14 +57,13 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
   try {
     const { title, description, latitude, longitude } = req.body;
     
-    // index.html ile uyum için: veritabanına sadece dosya adını kaydediyoruz
-    // frontend zaten /uploads/ ekini kendi koyuyor
+    // Veritabanına sadece dosya adını kaydediyoruz (Frontend ile uyum için)
     const photo = req.file ? req.file.filename : null;
     
     const userRes = await pool.query("SELECT username FROM users WHERE id = $1", [req.user.id]);
     const username = userRes.rows[0]?.username || "Anonim";
 
-    // KRİTİK DÜZELTME: lat/lng sütunları yerine PostGIS 'geom' sütununu kullanıyoruz
+    // Mekânsal Veri (Point) kaydı:
     const newIssue = await pool.query(
       `INSERT INTO issues (title, description, photo, geom, created_by) 
        VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint($5, $4), 4326), $6) 
@@ -94,7 +93,7 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
  */
 router.delete("/:id", auth, async (req, res) => {
   try {
-    // Rol Kontrolü: index.html'deki gibi 'Vatandaş' yetkisizdir
+    // Rol Kontrolü: 'Vatandaş' ve 'citizen' rollerini yetkisiz kılıyoruz
     if (req.user.role === "Vatandaş" || req.user.role === "citizen") {
        return res.status(403).json({ error: "Silmek için yetkili olmalısınız!" });
     }

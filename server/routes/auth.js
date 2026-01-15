@@ -32,8 +32,7 @@ router.post("/register", async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
-    // ÖNEMLİ: index.html'deki değerlerle (citizen, staff, admin) eşleşmeli
-    // Veritabanındaki DEFAULT 'citizen' olduğu için bunu koruyoruz
+    // index.html ve setup.js ile uyum için rol kontrolü
     const allowedRoles = ["citizen", "staff", "admin", "Vatandaş", "Belediye"]; 
     const userRole = allowedRoles.includes(role) ? role : "citizen";
 
@@ -84,8 +83,7 @@ router.post("/login", async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(401).json({ error: "Şifre yanlış" });
 
-    // "GIZLI_KELIME" yerine .env dosyasındaki JWT_SECRET kullanılması daha güvenlidir
-    const secret = process.env.JWT_SECRET || "GIZLI_KELIME";
+    const secret = process.env.JWT_SECRET || "GIZLI_KELIME"; // server.js ile uyumlu
     const token = jwt.sign({ id: user.id, role: user.role }, secret, { expiresIn: "1h" });
 
     res.json({ token, role: user.role, username: user.username });
