@@ -3,28 +3,14 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const pool = require("./db/postgres");
-const swaggerJsDoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
 
 const issuesRouter = require("./routes/issues");
 const authRouter = require("./routes/auth");
 
 const app = express();
 
-const swaggerOptions = {
-  swaggerDefinition: {
-    openapi: '3.0.0',
-    info: { title: 'Belediye CBS API', version: '1.0.0' },
-    servers: [{ url: 'http://13.48.248.53:5002' }]
-  },
-  // Dosya yolu deployment yapına uygun olarak güncellendi
-  apis: ['./server/routes/*.js', './server/server.js'], 
-};
-
-const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use(cors());
 app.use(express.json());
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const clientPath = path.join(__dirname, "../client");
 app.use(express.static(clientPath));
