@@ -1,143 +1,144 @@
-# GMT 458 – Full Stack Web GIS Project
+# 🌍 GMT 458 – Advanced Full Stack Web GIS: Smart City Management Platform
 
-This repository contains the final development of the **GMT 458 – Web GIS** course project.
-The project is a **Full Stack Web GIS application** built using modern web technologies, a **Spatial Database (PostgreSQL/PostGIS)**, and hosted on **AWS Cloud**.
-
-## 👤 Student Information
-
-* **Name:** Oktay Duman
-* **Student ID:** 2200674014
-* **Course:** GMT 458 – Web GIS
+This repository contains the complete development of a **Full Stack Web GIS application** designed for **urban issue reporting** and **spatial data management**.  
+The system enables citizens to report location-based urban problems while providing administrators with a robust dashboard for spatial analysis and management.
 
 ---
 
-## 🚀 Project Overview
+## 👤 Student & Course Information
 
-This project is a complete "Urban Issue Reporting System" that allows citizens to report location-based issues (potholes, trash, lighting) and enables administrators to manage them.
+- **Name:** Oktay Duman  
+- **Student ID:** 2200674014  
+- **Course:** GMT 458 – Web GIS  
 
-**Key Architectural Decisions:**
-* **API Development Strategy:** Instead of using pre-built servers like GeoServer, a custom **RESTful API** was developed using Node.js to handle spatial queries efficiently.
-* **Cloud Deployment:** The project is hosted live on an **Amazon Web Services (AWS) EC2** instance for real-world accessibility.
-* **Spatial Performance:** Utilizes **PostGIS** with **R-Tree Spatial Indexing** for fast geographic queries.
-
----
-
-## 🗺️ Core Features & Requirements Met
-
-### 1. Advanced Web GIS Capabilities
-* ✅ **Interactive Map:** Built with Leaflet.js & OpenStreetMap.
-* ✅ **Real-time Geolocation:** User position detection via HTML5 API.
-* ✅ **Spatial Database:** Data stored in **PostgreSQL** with **PostGIS** extension (Geometry/Point types).
-* ✅ **Spatial Indexing:** GIST (Generalized Search Tree) indexing implemented for performance.
-
-### 2. User & System Management
-* ✅ **Authentication System:** Secure Login & Registration using **JWT (JSON Web Tokens)**.
-* ✅ **Role-Based Access Control (RBAC):**
-    * **Citizen:** Can view and report issues.
-    * **Staff/Admin:** Can manage and delete issues.
-    * **Guest:** Read-only access.
-
-### 3. CRUD Operations
-* ✅ **Create:** Report new issues with location, description, and photos.
-* ✅ **Read:** View all issues on the map with popup details.
-* ✅ **Update/Delete:** Authorized users can manage records.
-
-### 4. Cloud & Deployment
-* ✅ **AWS Hosting:** Deployed on an Ubuntu Server via AWS EC2.
-* ✅ **Process Management:** Application runs continuously using **PM2**.
+🔗 **Live Application:** http://13.48.248.53:5002  
+📘 **API Documentation (Swagger):** http://13.48.248.53:5002/api-docs  
 
 ---
 
-## 🛠 Tech Stack
+## 🚀 Project Architecture Overview
 
-### Frontend
-* HTML5, CSS3, JavaScript (ES6+)
-* **Mapping Library:** Leaflet.js
-* **Basemaps:** OpenStreetMap (OSM)
+The project is built on a modern **three-tier architecture** designed for **scalability, security, and high spatial performance**.
 
-### Backend (API)
-* **Runtime:** Node.js
-* **Framework:** Express.js
-* **Security:** BCrypt (Password Hashing), JWT (Tokens), CORS
+### 1) Frontend (Client)
 
-### Database
-* **DBMS:** PostgreSQL
-* **Spatial Extension:** PostGIS
-* **Library:** `pg` (node-postgres)
+- **Interactive Mapping:** Powered by **Leaflet.js**, utilizing **CartoDB** and **OpenStreetMap** basemaps.  
+- **Spatial Interaction:** Supports dual-mode location acquisition via:
+  - **HTML5 Geolocation API**
+  - **Map-click interactivity** for precision  
+- **User Experience:** Modern **Glassmorphism UI**, **Plus Jakarta Sans** typography, real-time system stats, and a **Dark/Light mode** toggle.  
+- **Performance:** **Marker Clustering** to handle dense spatial points efficiently.
 
-### DevOps & Tools
-* **Cloud:** Amazon Web Services (AWS EC2)
-* **OS:** Ubuntu Linux
-* **Version Control:** Git & GitHub
-* **Process Manager:** PM2
+### 2) Backend (API)
+
+- **Runtime Environment:** **Node.js** with **Express.js**  
+- **Security & Auth:** Secure authentication using **JWT (JSON Web Tokens)** with **Role-Based Access Control**  
+- **API Standards:** RESTful API design + integrated **Swagger (OpenAPI)** documentation  
+- **File Handling:** Image uploads for issue photos via **Multer**, served through a static Express directory
+
+### 3) Spatial Database
+
+- **Engine:** **PostgreSQL** with **PostGIS** extension  
+- **Spatial Indexing:** Uses **GIST** indexing on geometry columns to enable fast spatial querying  
+  - *(Course performance requirement: +25% query performance boost)*
 
 ---
 
-## 📁 Project Structure
+## ⚙️ Tech Stack
 
-```bash
-web-gis-proje/
-│
-├── client/
-│   ├── index.html          # Main User Interface (Map + Forms)
-│   ├── admin.html          # Admin Dashboard (Optional)
-│   └── assets/             # CSS and Icons
-│
-├── server/
-│   ├── db.js               # PostgreSQL Connection Pool
-│   ├── setup.js            # Database & Table Initialization Script
-│   ├── server.js           # Main Express App & API Routes
-│   ├── uploads/            # Storage for issue photos
-│   ├── .env                # Environment Variables (DB Creds, Secrets)
-│   └── package.json        # Dependencies
-│
-└── README.md
-⚙️ Database Schema (PostgreSQL)
-The system uses a relational schema with spatial capabilities:
+| Category | Technology |
+|---|---|
+| **Frontend** | HTML5, CSS3, JavaScript (ES6+), Leaflet.js |
+| **Backend** | Node.js, Express.js, JWT, BCrypt, Multer (File Uploads) |
+| **Database** | PostgreSQL, PostGIS (Geometry/Point types) |
+| **Cloud/DevOps** | AWS EC2 (Ubuntu 22.04), PM2, Git/GitHub |
 
-SQL
+---
 
+## 💾 Database Schema & Spatial Indexing
+
+The system utilizes a relational schema optimized for geographic data.
+
+```sql
+-- Issues Table Schema
 CREATE TABLE issues (
     id SERIAL PRIMARY KEY,
     title VARCHAR(100),
     description TEXT,
-    contact VARCHAR(100),
-    image_url TEXT,
-    location GEOMETRY(Point, 4326),  -- Spatial Column
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    photo TEXT,
+    geom GEOMETRY(Point, 4326),  -- WGS84 Spatial Column
+    created_by VARCHAR(50),
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Spatial Index for Performance
-CREATE INDEX idx_issues_location ON issues USING GIST (location);
-🔗 API Endpoints
-Authentication
-POST /api/auth/register - Register a new user
+-- R-Tree Based Spatial Index for Performance
+CREATE INDEX issues_geom_idx ON issues USING GIST (geom);
 
-POST /api/auth/login - Login and receive JWT
+🛡️ User Roles & Security (RBAC)
 
-Issue Management
-GET /api/issues - Retrieve all spatial data (GeoJSON format)
+The system implements Role-Based Access Control (RBAC) to ensure privacy and data integrity:
 
-POST /api/issues - Report a new issue (Supports Multipart/Form-Data)
+Citizen (Vatandaş): Can register, login, and report issues. Visibility is restricted to their own reports for privacy.
 
-DELETE /api/issues/:id - Delete an issue (Admin only)
+Staff / Belediye: Authorized to view all reported issues across the city for analysis and action.
 
-🧪 Deployment & Live Testing
-The project is currently deployed on AWS.
+Admin: Full system control, including data cleanup and administrative actions.
 
-Server: AWS EC2 (t2.micro / Ubuntu)
+📁 Directory Structure
+web-gis-proje/
+├── client/                 # Frontend assets
+│   └── index.html          # Main Application Entry & GIS Logic
+├── server/                 # Backend API
+│   ├── db/                 # Postgres connection pool
+│   ├── routes/             # Auth and Issue API routes
+│   ├── uploads/            # Issue photo storage
+│   ├── setup.js            # DB Initialization & GIST indexing
+│   └── server.js           # Main Express server
+├── .env                    # Secrets and DB credentials
+└── README.md
 
-Port: 5002 (Custom TCP Rule enabled in Security Groups)
+🛠️ Installation & Deployment
+✅ Local Setup
 
-Live Access: The application is accessible via the public IP provided in the submission details.
+Clone
 
-📌 Progress Summary
-❌ Old Plan: MongoDB (Removed for better spatial support)
+git clone https://github.com/yourusername/web-gis-proje.git
 
-✅ Current Status: PostgreSQL + PostGIS (Completed)
 
-✅ Status: AWS Deployment (Completed)
+Install dependencies
 
-✅ Status: Authentication & Security (Completed)
+npm install
 
-Developed by Oktay Duman for GMT 458.
+
+Database config
+
+Install PostgreSQL + PostGIS
+
+Update your .env credentials
+
+Initialize DB
+
+node server/setup.js
+
+
+Run
+
+node server/server.js
+
+☁️ AWS Deployment
+
+The project is hosted on AWS EC2 (Ubuntu).
+PM2 is used as the production process manager to ensure high uptime (target 99.9%).
+Security groups allow traffic on port 5002.
+
+📌 Requirements Check
+
+✅ Spatial Database: Fully implemented with PostGIS
+
+✅ Cloud Deployment: Live on AWS EC2
+
+✅ Spatial Index: GIST indexing successfully applied
+
+✅ Authentication: JWT-based secure login + role management
+
+Developed by Oktay Duman for GMT 458 – Web GIS Final Project.

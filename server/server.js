@@ -34,19 +34,21 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
 // --- MIDDLEWARE ---
-app.use(cors());
+app.use(cors()); // Farklı bilgisayarlardan/cihazlardan erişim için kritik
 app.use(express.json());
 
 // Swagger Rotası
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // --- DOSYA YOLLARI VE STATİK SUNUM ---
+// Önemli: Klasör yapınızda 'client' ve 'server' aynı ana dizin altındaysa bu yol doğrudur.
 const clientPath = path.join(__dirname, "../client");
 
-// Harita sayfasını (index.html) sunar
+// 1. Harita sayfasını (index.html) sunar
 app.use(express.static(clientPath));
 
-// Yüklenen fotoğrafları dışarıya açar
+// 2. Yüklenen fotoğrafları dışarıya açar 
+// Tarayıcıdan http://IP:5002/uploads/resim.png şeklinde erişimi sağlar.
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // --- API ROTALARI ---
@@ -59,12 +61,11 @@ app.get("/", (req, res) => {
 });
 
 // --- VERİTABANI BAĞLANTI TESTİ ---
-// PostGIS destekli belediye_db veritabanına bağlanır
 pool.query("SELECT NOW()")
   .then(() => console.log("✅ AWS PostgreSQL/PostGIS Bağlantısı Başarılı"))
   .catch(err => {
     console.error("❌ Veritabanı Hatası:", err.message);
-    process.exit(1);
+    // process.exit(1); // Bağlantı kopsa bile sunucunun tamamen kapanmaması için istersen yoruma alabilirsin
   });
 
 // --- SUNUCUYU BAŞLAT ---

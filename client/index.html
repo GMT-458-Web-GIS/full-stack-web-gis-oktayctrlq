@@ -1,318 +1,789 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Belediye CBS | Akıllı Kent Yönetim Paneli</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Belediye CBS | Akıllı Kent Yönetim Paneli</title>
 
-    <style>
-        :root {
-            --primary: #0f172a;
-            --secondary: #3b82f6;
-            --accent: #f59e0b;
-            --danger: #ef4444;
-            --success: #10b981;
-            --glass: rgba(255, 255, 255, 0.85);
-            --bg: #f8fafc;
-            --text: #1e293b;
-        }
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
 
-        body.dark-mode {
-            --primary: #f8fafc;
-            --secondary: #60a5fa;
-            --glass: rgba(15, 23, 42, 0.9);
-            --bg: #020617;
-            --text: #f1f5f9;
-        }
+  <style>
+    :root {
+      --primary: #0f172a;
+      --secondary: #3b82f6;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --glass: rgba(255, 255, 255, 0.85);
+      --bg: #f8fafc;
+      --text: #1e293b;
+      --muted: #64748b;
+      --shadow: 0 20px 40px rgba(0,0,0,0.18);
+      --shadow-soft: 0 10px 25px rgba(0,0,0,0.10);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
 
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        
-        /* Loading Screen */
-        #loader { position: fixed; inset: 0; background: #0f172a; z-index: 30000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.5s; }
-        .spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--secondary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    body.dark-mode {
+      --primary: #f8fafc;
+      --secondary: #60a5fa;
+      --glass: rgba(15, 23, 42, 0.90);
+      --bg: #020617;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --shadow: 0 20px 40px rgba(0,0,0,0.35);
+      --shadow-soft: 0 10px 25px rgba(0,0,0,0.25);
+    }
 
-        /* Landing Page Geliştirilmiş */
-        #landing-page { 
-            position: fixed; inset: 0; 
-            background: radial-gradient(circle at top right, #1e3a8a, #0f172a); 
-            color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; text-align: center;
-        }
-        .hero-title { font-size: 4.5rem; font-weight: 800; margin: 0; background: linear-gradient(to right, #fff, #93c5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .role-cards { display: flex; gap: 25px; margin: 50px 0; }
-        .card { 
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px); padding: 35px; border-radius: 24px; width: 220px;
-            transition: 0.3s; cursor: default;
-        }
-        .card:hover { transform: translateY(-10px); background: rgba(255, 255, 255, 0.1); border-color: var(--secondary); }
-        .card i { font-size: 2rem; display: block; margin-bottom: 15px; }
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg); color: var(--text);
+      overflow: hidden;
+      transition: 0.35s;
+    }
 
-        /* Auth Container */
-        #auth-container { display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 20000; }
-        .auth-box { background: var(--glass); padding: 45px; border-radius: 32px; width: 380px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-        .auth-box input, .auth-box select { width: 100%; padding: 15px; margin: 12px 0; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; font-size: 1rem; outline: none; transition: 0.3s; }
-        .auth-box input:focus { border-color: var(--secondary); ring: 2px solid var(--secondary); }
-        .auth-btn { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 14px; cursor: pointer; font-weight: 700; font-size: 1rem; margin-top: 10px; }
+    /* Loader */
+    #loader {
+      position: fixed; inset: 0;
+      background: #0f172a;
+      z-index: 30000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: 0.5s;
+    }
+    .spinner {
+      width: 60px; height: 60px;
+      border: 4px solid rgba(255,255,255,0.12);
+      border-top: 4px solid var(--secondary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Map UI */
-        #map-container { display: none; height: 100%; width: 100%; position: relative; }
-        #map { height: 100%; width: 100%; }
+    /* Landing */
+    #landing-page {
+      position: fixed; inset: 0;
+      background: radial-gradient(circle at top right, #1e3a8a, #0f172a);
+      color: white;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 10000;
+      text-align: center;
+      padding: 24px;
+    }
+    .hero-title {
+      font-size: clamp(2.6rem, 4.5vw, 4.5rem);
+      font-weight: 800;
+      margin: 0;
+      background: linear-gradient(to right, #fff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.1rem;
+      opacity: 0.85;
+      margin: 10px 0 28px 0;
+      max-width: 720px;
+      line-height: 1.5;
+    }
+    .role-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(220px, 260px));
+      gap: 18px;
+      margin: 18px 0 28px 0;
+      align-items: stretch;
+      justify-content: center;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(10px);
+      padding: 22px;
+      border-radius: 24px;
+      transition: 0.25s;
+      cursor: pointer;
+      text-align: left;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+      position: relative;
+      overflow: hidden;
+      min-height: 168px;
+    }
+    .card:before {
+      content: "";
+      position: absolute;
+      inset: -40% -40% auto auto;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(59,130,246,0.35), rgba(59,130,246,0));
+      transform: rotate(20deg);
+      pointer-events: none;
+    }
+    .card:hover {
+      transform: translateY(-6px) scale(1.01);
+      border-color: rgba(255,255,255,0.22);
+    }
+    .card h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+    .card p {
+      margin: 0;
+      opacity: 0.82;
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+    .tag {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: rgba(59,130,246,0.16);
+      border: 1px solid rgba(59,130,246,0.36);
+      color: #bfdbfe;
+      font-weight: 700;
+    }
+    .tag.danger {
+      background: rgba(239,68,68,0.16);
+      border-color: rgba(239,68,68,0.38);
+      color: #fecaca;
+    }
+    .tag.success {
+      background: rgba(16,185,129,0.16);
+      border-color: rgba(16,185,129,0.35);
+      color: #bbf7d0;
+    }
+    .cta {
+      padding: 18px 56px;
+      border-radius: 999px;
+      background: var(--secondary);
+      color: white;
+      border: none;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 18px 40px rgba(59,130,246,0.35);
+      transition: 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .cta:hover { transform: translateY(-2px); filter: brightness(1.05); }
 
-        .stats-panel { 
-            position: absolute; top: 25px; left: 25px; z-index: 1000; 
-            background: var(--glass); backdrop-filter: blur(12px); color: var(--primary);
-            padding: 20px; border-radius: 20px; min-width: 240px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
+    /* Auth */
+    #auth-container {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(2, 6, 23, 0.85);
+      backdrop-filter: blur(8px);
+      justify-content: center; align-items: center;
+      z-index: 20000;
+      padding: 18px;
+    }
+    .auth-box {
+      background: var(--glass);
+      padding: 38px;
+      border-radius: 32px;
+      width: min(420px, 92vw);
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .auth-box h2 { margin: 0 0 18px 0; }
+    .auth-box input, .auth-box select {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      border: 1px solid rgba(0,0,0,0.10);
+      border-radius: 12px;
+      outline: none;
+      background: rgba(255,255,255,0.75);
+    }
+    body.dark-mode .auth-box input, body.dark-mode .auth-box select {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+      color: var(--text);
+    }
+    .auth-box input:focus, .auth-box select:focus {
+      border-color: rgba(59,130,246,0.65);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.18);
+    }
+    .auth-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--secondary);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 900;
+      transition: 0.2s;
+    }
+    .auth-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    .auth-alt {
+      background: none;
+      border: none;
+      color: var(--secondary);
+      margin-top: 14px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+    .auth-hint {
+      margin: 8px 0 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: left;
+    }
 
-        .controls {
-            position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
-            background: var(--glass); backdrop-filter: blur(16px); padding: 20px 30px; 
-            border-radius: 28px; z-index: 1000; display: flex; gap: 15px; align-items: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2);
-        }
+    /* Map */
+    #map-container { display: none; height: 100%; width: 100%; position: relative; }
+    #map { height: 100%; width: 100%; }
 
-        .btn-action { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-save { background: var(--success); color: white; }
-        .btn-save:hover { opacity: 0.9; transform: scale(1.05); }
+    .stats-panel {
+      position: absolute;
+      top: 25px; left: 25px;
+      z-index: 1000;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      min-width: 255px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+    body.dark-mode .stats-panel { border-color: rgba(255,255,255,0.08); }
+    .stats-title {
+      margin: 0 0 10px 0;
+      color: var(--secondary);
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.22);
+      font-size: 0.78rem;
+      font-weight: 900;
+      margin-top: 10px;
+    }
+    .progress-wrap {
+      margin-top: 14px;
+      height: 7px;
+      background: rgba(0,0,0,0.06);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    body.dark-mode .progress-wrap { background: rgba(255,255,255,0.10); }
+    #progress-bar {
+      height: 100%;
+      background: var(--secondary);
+      width: 0%;
+      transition: 1.2s;
+    }
 
-        .top-nav { position: absolute; top: 25px; right: 25px; z-index: 1000; display: flex; gap: 15px; }
-        .nav-btn { background: var(--glass); padding: 12px 20px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    </style>
+    .top-nav {
+      position: absolute;
+      top: 25px; right: 25px;
+      z-index: 1000;
+      display: flex;
+      gap: 12px;
+    }
+    .nav-btn {
+      background: var(--glass);
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.06);
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: var(--shadow-soft);
+      transition: 0.2s;
+    }
+    body.dark-mode .nav-btn { border-color: rgba(255,255,255,0.08); }
+    .nav-btn:hover { transform: translateY(-1px); filter: brightness(1.02); }
+
+    .controls {
+      position: absolute;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      padding: 14px 16px;
+      border-radius: var(--radius-xl);
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(0,0,0,0.06);
+      width: min(980px, 94vw);
+    }
+    body.dark-mode .controls { border-color: rgba(255,255,255,0.08); }
+    .controls input[type="text"] {
+      width: 100%;
+      min-width: 140px;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.12);
+      outline: none;
+      background: rgba(255,255,255,0.7);
+    }
+    body.dark-mode .controls input[type="text"] {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+      color: var(--text);
+    }
+    .controls input[type="text"]:focus {
+      border-color: rgba(59,130,246,0.65);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.18);
+    }
+    .controls input[type="file"] {
+      width: 220px;
+      max-width: 24vw;
+      font-size: 12px;
+    }
+    .icon-btn {
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.06);
+      padding: 12px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-weight: 900;
+    }
+    body.dark-mode .icon-btn {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.10);
+      color: var(--text);
+    }
+    .icon-btn:hover { transform: translateY(-1px); }
+    .btn-save {
+      background: var(--success);
+      color: white;
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 900;
+      cursor: pointer;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+    .btn-save:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+    /* Leaflet popup güzelleştirme */
+    .leaflet-popup-content-wrapper {
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .popup-card {
+      min-width: 230px;
+      max-width: 280px;
+    }
+    .popup-title {
+      font-weight: 900;
+      font-size: 1rem;
+      margin: 0 0 6px 0;
+    }
+    .popup-desc {
+      margin: 0;
+      font-size: 0.9rem;
+      opacity: 0.88;
+      line-height: 1.35;
+    }
+    .popup-meta {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+    body.dark-mode .popup-meta { color: #9ca3af; }
+    .popup-img {
+      width: 100%;
+      max-height: 160px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-top: 10px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    body.dark-mode .popup-img { border-color: rgba(255,255,255,0.12); }
+
+    /* Responsive */
+    @media (max-width: 980px) {
+      .role-cards { grid-template-columns: 1fr; width: min(520px, 92vw); }
+      .controls { flex-wrap: wrap; gap: 10px; padding: 14px; }
+      .controls input[type="file"] { width: 100%; max-width: 100%; }
+      .stats-panel { top: 14px; left: 14px; }
+      .top-nav { top: 14px; right: 14px; }
+    }
+  </style>
 </head>
+
 <body>
+  <div id="loader">
+    <div class="spinner"></div>
+    <p style="color:white; margin-top: 20px; font-weight: 600; letter-spacing: 0.02em;">SİSTEM HAZIRLANIYOR...</p>
+  </div>
 
-    <div id="loader">
-        <div class="spinner"></div>
-        <p style="color: white; margin-top: 20px; font-weight: 500; letter-spacing: 1px;">SİSTEM BAŞLATILIYOR...</p>
+  <div id="landing-page">
+    <h1 class="hero-title">Belediye CBS</h1>
+    <p class="hero-sub">
+      Akıllı Şehir Yönetim Sistemi: konum bazlı sorun bildirimleri, fotoğraf ekleme ve rol bazlı yönetim.
+    </p>
+
+    <div class="role-cards">
+      <div class="card" onclick="selectRole('Vatandaş')">
+        <h3>👤 Vatandaş</h3>
+        <p>Sadece kendi bildirimlerini görür. Haritadan konum seçip sorun kaydı + fotoğraf ekleyebilir.</p>
+        <span class="tag success">Raporla • Fotoğraf ekle</span>
+      </div>
+
+      <div class="card" onclick="selectRole('Belediye')">
+        <h3>🛡️ Belediye Birimi</h3>
+        <p>Tüm kayıtları görür. Açıklama güncelleyebilir ve sahadan gelen talepleri takip edebilir.</p>
+        <span class="tag">Yönet • Güncelle</span>
+      </div>
+
+      <div class="card" onclick="selectRole('admin')">
+        <h3>🧠 Yönetici (Admin)</h3>
+        <p>Tam yetki: tüm kayıtları görür, günceller ve silebilir. Sistem yönetimi için kullanılır.</p>
+        <span class="tag danger">Tam Yetki</span>
+      </div>
     </div>
 
-    <div id="landing-page">
-        <h1 class="hero-title">Belediye CBS</h1>
-        <p style="font-size: 1.2rem; opacity: 0.8;">Sürdürülebilir ve Akıllı Şehir Yönetim Altyapısı</p>
-        
-        <div class="role-cards">
-            <div class="card">
-                <h3>Vatandaş</h3>
-                <p style="font-size: 0.8rem; opacity: 0.7;">Sorun bildir, şehrini geliştir ve taleplerini takip et.</p>
-            </div>
-            <div class="card">
-                <h3>Belediye</h3>
-                <p style="font-size: 0.8rem; opacity: 0.7;">Gelen talepleri analiz et, ekipleri hızlıca yönlendir.</p>
-            </div>
-            <div class="card">
-                <h3>Yönetici</h3>
-                <p style="font-size: 0.8rem; opacity: 0.7;">Tüm şehir verisini izle, stratejik kararlar al.</p>
-            </div>
-        </div>
+    <button class="cta" onclick="enterSystem()">KEŞFETMEYE BAŞLA 🚀</button>
+  </div>
 
-        <button onclick="enterSystem()" style="padding: 22px 70px; border-radius: 50px; background: var(--secondary); color:white; border: none; font-weight: 800; cursor: pointer; box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4);">SİSTEME GİRİŞ YAP</button>
+  <div id="auth-container">
+    <div class="auth-box">
+      <h2 id="form-title">Sisteme Giriş</h2>
+
+      <input type="text" id="username" placeholder="Kullanıcı Adı" autocomplete="username">
+      <input type="password" id="password" placeholder="Şifre" autocomplete="current-password">
+
+      <select id="role-select" style="display:none;">
+        <option value="Vatandaş">Vatandaş</option>
+        <option value="Belediye">Belediye Birimi</option>
+        <option value="admin">Yönetici (Admin)</option>
+      </select>
+
+      <p class="auth-hint" id="auth-hint">
+        Giriş yaparak haritayı görüntüleyebilir ve rolünüze göre işlem yapabilirsiniz.
+      </p>
+
+      <button class="auth-btn" id="auth-btn" onclick="handleLogin()">DEVAM ET</button>
+      <button class="auth-alt" onclick="toggleForm()">Hesabınız yok mu? Kayıt Olun</button>
+    </div>
+  </div>
+
+  <div id="map-container">
+    <div class="top-nav">
+      <button class="nav-btn" onclick="toggleTheme()">🌓 Mod</button>
+      <button class="nav-btn" style="background:var(--danger); color:white;" onclick="logout()">Güvenli Çıkış</button>
     </div>
 
-    <div id="auth-container">
-        <div class="auth-box">
-            <h2 id="form-title" style="margin-bottom: 25px;">Yönetim Paneli</h2>
-            <input type="text" id="username" placeholder="Kullanıcı Adı">
-            <input type="password" id="password" placeholder="Şifre">
-            <select id="role-select" style="display:none;">
-                <option value="Vatandaş">Vatandaş</option>
-                <option value="Belediye">Belediye Birimi</option>
-                <option value="admin">Sistem Yöneticisi</option>
-            </select>
-            <button class="auth-btn" id="auth-btn" onclick="handleLogin()">GİRİŞ YAP</button>
-            <button onclick="toggleForm()" style="background:none; border:none; color:var(--secondary); margin-top:20px; cursor:pointer; font-weight:600;">Hesabınız yok mu? Kayıt Olun</button>
-        </div>
+    <div class="stats-panel">
+      <h4 class="stats-title">📊 Şehir Özeti</h4>
+      <div>Rol: <b id="user-role-display">...</b></div>
+      <div>Kayıtlı Rapor: <b id="total-count">0</b></div>
+
+      <div class="progress-wrap">
+        <div id="progress-bar"></div>
+      </div>
+
+      <div class="pill">🗺️ İpucu: Haritaya tıkla → konum seç</div>
     </div>
 
-    <div id="map-container">
-        <div class="top-nav">
-            <button class="nav-btn" onclick="toggleTheme()">🌓 Tema</button>
-            <button class="nav-btn" style="background:var(--danger); color:white;" onclick="logout()">Çıkış Yap</button>
-        </div>
-        
-        <div class="stats-panel">
-            <h4 style="margin:0 0 15px 0; color:var(--secondary);">📊 Şehir İstatistikleri</h4>
-            <div style="margin-bottom: 8px;">Oturum: <b id="user-role-display">...</b></div>
-            <div>Toplam Rapor: <b id="total-count">0</b></div>
-            <div style="margin-top:15px; height: 6px; background: rgba(0,0,0,0.05); border-radius: 10px; overflow:hidden;">
-                <div id="progress-bar" style="height:100%; background:var(--secondary); width: 0%; transition: 1.5s;"></div>
+    <div id="map"></div>
+
+    <div class="controls">
+      <input type="text" id="title" placeholder="Sorun Başlığı">
+      <input type="text" id="desc" placeholder="Açıklama">
+      <input type="file" id="photo" accept="image/*">
+      <button class="icon-btn" onclick="getLocation()" title="📍 Konum">📍</button>
+      <button onclick="saveIssue()" class="btn-save">KAYDET</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <script>
+    const API_BASE_URL = "http://13.48.248.53:5002";
+
+    let map, markersLayer, currentLat, currentLng, allIssues = [];
+    let isDarkMode = false, isRegisterMode = false, tempMarker;
+    let baseLayer; // ✅ tek tile layer
+
+    window.onload = () => {
+      setTimeout(() => {
+        document.getElementById("loader").style.opacity = "0";
+        setTimeout(() => document.getElementById("loader").style.display = "none", 500);
+      }, 1200);
+
+      // Önceden seçilen rol varsa (landing kartlarından)
+      const selectedRole = localStorage.getItem("selectedRole");
+      if (selectedRole) {
+        // kullanıcı landing’den rol seçtiyse auth'a geçince kayıt modunda role-select otomatik seçilecek
+      }
+
+      if (localStorage.getItem("token")) showMap();
+    };
+
+    function enterSystem() {
+      document.getElementById("landing-page").style.display = "none";
+      document.getElementById("auth-container").style.display = "flex";
+    }
+
+    function selectRole(role) {
+      localStorage.setItem("selectedRole", role);
+      enterSystem();
+      // kayıt moduna geçir + rolü seç
+      if (!isRegisterMode) toggleForm();
+      document.getElementById("role-select").value = role;
+    }
+
+    function toggleForm() {
+      isRegisterMode = !isRegisterMode;
+
+      document.getElementById("form-title").innerText = isRegisterMode ? "Sisteme Kayıt" : "Sisteme Giriş";
+      document.getElementById("role-select").style.display = isRegisterMode ? "block" : "none";
+      document.getElementById("auth-btn").innerText = isRegisterMode ? "KAYDI TAMAMLA" : "DEVAM ET";
+      document.getElementById("auth-btn").onclick = isRegisterMode ? handleRegister : handleLogin;
+
+      document.getElementById("auth-hint").innerText = isRegisterMode
+        ? "Kayıt olurken rol seçebilirsiniz. Vatandaş: sadece kendi kayıtlarını görür."
+        : "Giriş yaparak haritayı görüntüleyebilir ve rolünüze göre işlem yapabilirsiniz.";
+
+      // landing’den rol seçildiyse, kayıt moduna geçince otomatik seç
+      const selectedRole = localStorage.getItem("selectedRole");
+      if (isRegisterMode && selectedRole) {
+        document.getElementById("role-select").value = selectedRole;
+      }
+    }
+
+    async function handleLogin() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", data.role);
+          localStorage.setItem("username", data.username);
+          showMap();
+        } else {
+          alert("❌ " + (data.error || "Giriş başarısız"));
+        }
+      } catch (err) {
+        alert("Sunucu hatası! IP adresinizi kontrol edin.");
+      }
+    }
+
+    async function handleRegister() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value,
+            role: document.getElementById("role-select").value
+          })
+        });
+
+        if (res.ok) {
+          alert("✅ Kayıt başarılı! Giriş yapabilirsiniz.");
+          toggleForm();
+        } else {
+          const data = await res.json().catch(()=>({}));
+          alert("❌ Kayıt hatası: " + (data.error || "Bilinmeyen hata"));
+        }
+      } catch (err) {
+        alert("Bağlantı hatası!");
+      }
+    }
+
+    function showMap() {
+      document.getElementById("landing-page").style.display = "none";
+      document.getElementById("auth-container").style.display = "none";
+      document.getElementById("map-container").style.display = "block";
+
+      document.getElementById("user-role-display").innerText = localStorage.getItem("role") || "-";
+
+      if (!map) {
+        map = L.map('map', { zoomControl: false }).setView([39.93, 32.85], 13);
+
+        // ✅ tek tile layer (dark/light toggle)
+        baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
+        baseLayer.addTo(map);
+
+        markersLayer = L.markerClusterGroup();
+        map.addLayer(markersLayer);
+
+        map.on('click', function (e) {
+          currentLat = e.latlng.lat;
+          currentLng = e.latlng.lng;
+
+          if (tempMarker) map.removeLayer(tempMarker);
+          tempMarker = L.marker([currentLat, currentLng], { draggable: true }).addTo(map)
+            .bindPopup("<b>Konum Seçildi</b><br>Kayıt yapabilirsiniz.").openPopup();
+
+          tempMarker.on("dragend", (ev) => {
+            const p = ev.target.getLatLng();
+            currentLat = p.lat;
+            currentLng = p.lng;
+          });
+        });
+
+        loadIssues();
+      }
+    }
+
+    async function loadIssues() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/issues`);
+        allIssues = await res.json();
+        renderMarkers();
+
+        document.getElementById("progress-bar").style.width = Math.min(allIssues.length * 10, 100) + "%";
+      } catch (err) {
+        console.error("Veri yükleme hatası:", err);
+      }
+    }
+
+    function renderMarkers() {
+      markersLayer.clearLayers();
+
+      const role = localStorage.getItem("role");
+      const user = localStorage.getItem("username");
+
+      allIssues.forEach(issue => {
+        if (role === "Vatandaş" && issue.created_by !== user) return;
+
+        if (issue.lat && issue.lng) {
+          const marker = L.circleMarker([issue.lat, issue.lng], {
+            radius: 11,
+            fillColor: "#3b82f6",
+            color: "white",
+            weight: 3,
+            fillOpacity: 0.85
+          });
+
+          // ✅ Şık popup + ✅ FOTO URL FIX (backend /uploads/... döndürüyor)
+          let content = `
+            <div class="popup-card">
+              <div class="popup-title">📍 ${escapeHtml(issue.title || "Başlıksız")}</div>
+              <p class="popup-desc">${escapeHtml(issue.description || "Açıklama yok")}</p>
+          `;
+
+          if (issue.photo) {
+            // issue.photo örnek: "/uploads/1705....jpg"
+            content += `<img class="popup-img" src="${API_BASE_URL}${issue.photo}" alt="Fotoğraf">`;
+          }
+
+          content += `
+              <div class="popup-meta">Bildiren: <b>${escapeHtml(issue.created_by || "Anonim")}</b></div>
             </div>
-            <p style="font-size: 0.7rem; margin-top: 10px; color: #64748b;">* Haritaya tıklayarak konum seçebilirsiniz.</p>
-        </div>
+          `;
 
-        <div id="map"></div>
-
-        <div class="controls">
-            <input type="text" id="title" placeholder="Sorun Başlığı" style="width: 130px; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
-            <input type="text" id="desc" placeholder="Açıklama" style="width: 150px; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
-            <input type="file" id="photo" style="font-size: 11px; width: 140px;">
-            <button onclick="getLocation()" title="Konumumu Bul" style="background:#f1f5f9; border:none; padding:12px; border-radius:12px; cursor:pointer;">📍</button>
-            <button onclick="saveIssue()" class="btn-action btn-save">KAYDET</button>
-        </div>
-    </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-    <script>
-        const API_BASE_URL = "http://13.48.248.53:5002"; 
-        let map, markersLayer, currentLat, currentLng, allIssues = [], isDarkMode = false, isRegisterMode = false, tempMarker;
-
-        window.onload = () => { 
-            setTimeout(() => { document.getElementById("loader").style.opacity = "0"; setTimeout(()=>document.getElementById("loader").style.display="none", 500); }, 1500); 
-            if (localStorage.getItem("token")) showMap();
-        };
-
-        function enterSystem() { 
-            document.getElementById("landing-page").style.display = "none"; 
-            document.getElementById("auth-container").style.display = "flex"; 
+          marker.addTo(markersLayer).bindPopup(content);
         }
+      });
 
-        function toggleForm() {
-            isRegisterMode = !isRegisterMode;
-            document.getElementById("form-title").innerText = isRegisterMode ? "Sisteme Kayıt" : "Yönetim Paneli";
-            document.getElementById("role-select").style.display = isRegisterMode ? "block" : "none";
-            document.getElementById("auth-btn").innerText = isRegisterMode ? "KAYDI TAMAMLA" : "GİRİŞ YAP";
-            document.getElementById("auth-btn").onclick = isRegisterMode ? handleRegister : handleLogin;
+      document.getElementById("total-count").innerText = allIssues.length;
+    }
+
+    function getLocation() {
+      navigator.geolocation.getCurrentPosition(pos => {
+        currentLat = pos.coords.latitude;
+        currentLng = pos.coords.longitude;
+
+        map.flyTo([currentLat, currentLng], 17);
+
+        if (tempMarker) map.removeLayer(tempMarker);
+        tempMarker = L.marker([currentLat, currentLng]).addTo(map).bindPopup("📍 Buradasınız").openPopup();
+      }, err => alert("GPS erişimi kısıtlı. Lütfen haritadan nokta seçin."));
+    }
+
+    async function saveIssue() {
+      if (!currentLat || !currentLng) return alert("Lütfen haritadan konum seçin!");
+
+      const title = document.getElementById("title").value.trim();
+      if (!title) return alert("Başlık boş olamaz!");
+
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("description", document.getElementById("desc").value.trim());
+      formData.append("latitude", currentLat);
+      formData.append("longitude", currentLng);
+
+      const photoFile = document.getElementById("photo").files[0];
+      if (photoFile) formData.append("photo", photoFile);
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/issues`, {
+          method: "POST",
+          headers: { "x-auth-token": localStorage.getItem("token") },
+          body: formData
+        });
+
+        if (res.ok) {
+          alert("✅ Kayıt başarıyla eklendi!");
+          if (tempMarker) map.removeLayer(tempMarker);
+
+          document.getElementById("title").value = "";
+          document.getElementById("desc").value = "";
+          document.getElementById("photo").value = "";
+
+          loadIssues();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          alert("❌ Hata: " + (data.error || "Bilinmeyen hata"));
         }
+      } catch (err) {
+        alert("Sunucu bağlantı hatası!");
+      }
+    }
 
-        async function handleLogin() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/auth/login`, { 
-                    method: "POST", headers: { "Content-Type": "application/json" }, 
-                    body: JSON.stringify({ username: document.getElementById("username").value, password: document.getElementById("password").value })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    localStorage.setItem("token", data.token); 
-                    localStorage.setItem("role", data.role); 
-                    localStorage.setItem("username", data.username);
-                    showMap();
-                } else { alert("❌ " + data.error); }
-            } catch (err) { alert("Sunucu hatası! AWS bağlantısını kontrol edin."); }
-        }
+    function toggleTheme() {
+      isDarkMode = !isDarkMode;
+      document.body.classList.toggle("dark-mode");
 
-        async function handleRegister() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/auth/register`, { 
-                    method: "POST", headers: { "Content-Type": "application/json" }, 
-                    body: JSON.stringify({ username: document.getElementById("username").value, password: document.getElementById("password").value, role: document.getElementById("role-select").value })
-                });
-                if (res.ok) { alert("✅ Kayıt başarılı! Giriş yapabilirsiniz."); toggleForm(); } else { alert("❌ Kayıt hatası."); }
-            } catch (err) { alert("Bağlantı hatası!"); }
-        }
+      const themeUrl = isDarkMode
+        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
-        function showMap() {
-            document.getElementById("landing-page").style.display = "none";
-            document.getElementById("auth-container").style.display = "none";
-            document.getElementById("map-container").style.display = "block";
-            document.getElementById("user-role-display").innerText = localStorage.getItem("role");
-            if (!map) {
-                map = L.map('map', { zoomControl: false }).setView([39.93, 32.85], 13);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
-                markersLayer = L.markerClusterGroup(); 
-                map.addLayer(markersLayer);
+      if (baseLayer) baseLayer.setUrl(themeUrl);
+    }
 
-                // HARİTAYA TIKLAYINCA KONUM SEÇME ÖZELLİĞİ
-                map.on('click', function(e) {
-                    currentLat = e.latlng.lat;
-                    currentLng = e.latlng.lng;
-                    if (tempMarker) map.removeLayer(tempMarker);
-                    tempMarker = L.marker([currentLat, currentLng], {draggable: true}).addTo(map)
-                        .bindPopup("<b>Seçilen Konum</b><br>Kaydet butonuna basabilirsiniz.").openPopup();
-                });
+    function logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      localStorage.removeItem("username");
+      localStorage.removeItem("selectedRole");
+      location.reload();
+    }
 
-                loadIssues();
-            }
-        }
-
-        async function loadIssues() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/issues`);
-                allIssues = await res.json();
-                renderMarkers();
-                document.getElementById("progress-bar").style.width = Math.min(allIssues.length * 5, 100) + "%";
-            } catch (err) { console.error("Veriler çekilemedi:", err); }
-        }
-
-        function renderMarkers() {
-            markersLayer.clearLayers();
-            const role = localStorage.getItem("role");
-            const user = localStorage.getItem("username");
-            allIssues.forEach(issue => {
-                // Rol bazlı filtreleme: Vatandaş sadece kendi kaydını görür, admin hepsini.
-                if (role === "Vatandaş" && issue.created_by !== user) return;
-                
-                if (issue.lat && issue.lng) {
-                    const marker = L.circleMarker([issue.lat, issue.lng], { 
-                        radius: 12, fillColor: "#3b82f6", color: "white", weight: 3, fillOpacity: 0.9 
-                    });
-                    let content = `<div style="min-width:180px;"><b>📍 ${issue.title}</b><p style="font-size:0.85rem;">${issue.description}</p>`;
-                    if (issue.photo) {
-                        content += `<img src="${API_BASE_URL}/uploads/${issue.photo}" width="100%" style="border-radius:12px; margin-top:8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">`;
-                    }
-                    content += `<div style="font-size:0.7rem; color:#94a3b8; margin-top:8px;">Bildiren: ${issue.created_by}</div></div>`;
-                    marker.addTo(markersLayer).bindPopup(content);
-                }
-            });
-            document.getElementById("total-count").innerText = allIssues.length;
-        }
-
-        function getLocation() {
-            navigator.geolocation.getCurrentPosition(pos => {
-                currentLat = pos.coords.latitude; currentLng = pos.coords.longitude;
-                map.flyTo([currentLat, currentLng], 17);
-                if (tempMarker) map.removeLayer(tempMarker);
-                tempMarker = L.marker([currentLat, currentLng]).addTo(map).bindPopup("📍 Mevcut Konumunuz").openPopup();
-            }, err => alert("Konum erişimi reddedildi. Haritaya tıklayarak konum seçebilirsiniz."));
-        }
-
-        async function saveIssue() {
-            if (!currentLat || !currentLng) return alert("Lütfen haritaya tıklayarak veya GPS ile konum seçin!");
-            const title = document.getElementById("title").value;
-            if (!title) return alert("Lütfen bir başlık girin!");
-
-            const formData = new FormData();
-            formData.append("title", title);
-            formData.append("description", document.getElementById("desc").value);
-            formData.append("latitude", currentLat); 
-            formData.append("longitude", currentLng);
-            const photoFile = document.getElementById("photo").files[0];
-            if (photoFile) formData.append("photo", photoFile);
-
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/issues`, { 
-                    method: "POST", 
-                    headers: { "x-auth-token": localStorage.getItem("token") }, 
-                    body: formData 
-                });
-
-                if (res.ok) { 
-                    alert("✅ Kayıt başarıyla sisteme iletildi!"); 
-                    if (tempMarker) map.removeLayer(tempMarker);
-                    document.getElementById("title").value = "";
-                    document.getElementById("desc").value = "";
-                    document.getElementById("photo").value = "";
-                    loadIssues(); 
-                } else {
-                    const data = await res.json();
-                    alert("❌ Hata: " + data.error);
-                }
-            } catch (err) { alert("❌ Sunucuya bağlanılamadı!"); }
-        }
-
-        function toggleTheme() {
-            isDarkMode = !isDarkMode;
-            document.body.classList.toggle("dark-mode");
-            const theme = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-            if(map) L.tileLayer(theme).addTo(map);
-        }
-
-        function logout() { localStorage.clear(); location.reload(); }
-    </script>
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[m]));
+    }
+  </script>
 </body>
 </html>
